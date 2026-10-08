@@ -1,6 +1,9 @@
 import pandas as pd 
 from google import genai 
 from google.genai import types
+from tool_logger import save_tool_log
+import logging
+from anomaly_detector import detect_bottlenecks
 
 def investigate(df: pd.DataFrame, api_key:str):
     """Run an evidence-base recuitment invesgigation"""
@@ -83,6 +86,32 @@ def investigate(df: pd.DataFrame, api_key:str):
         })
         return result
 
+    
+    def find_bottlenecks() -> dict:
+        """Detect potential recruitment funnel bottlenecks.
+
+        Uses a documented conversion threshold and minimum
+        sample size. Returns evidence for each job transition.
+        """
+        findings = detect_bottlenecks(data)
+
+        result = {
+            "method": (
+                "Flag conversion below 30% when the "
+                "previous stage has at least 10 candidates"
+            ),
+            "findings": findings,
+        }
+
+        tool_log.append({
+            "tool": "find_bottlenecks",
+            "arguments": {},
+            "result": result,
+        })
+
+        return result
+    
+
     job_ids = sorted(data["job_id"].astype(str).unique().tolist())
 
     client = genai.Client(api_key=api_key)
@@ -97,10 +126,17 @@ def investigate(df: pd.DataFrame, api_key:str):
 
         Investigate recuritment funnel performance. 
         
-        You MUST use the avaliable analysis tool before presenting findings. 
+        You MUST use the avaliable analysis tool before
+        presenting findings. 
 
         Compare jobs, investigate potential bottlenecks, 
         and explain which findinngs deserve attention.
+
+        Use find_bottlenecks to investigate funnel anomalies.
+        Explain the threshold and sample size used.
+        Treat flags as investigation priorities, not proven problems.
+        Distinguish observed conversion rates from possible causes.
+        Do not infer protected characteristics from hiring outcomes.
 
         RULES: 
         - All numerical claims must come from tool results
@@ -113,7 +149,7 @@ def investigate(df: pd.DataFrame, api_key:str):
         """,
 
         config=types.GenerateContentConfig(
-            tools=[compare_jobs, analyze_job],
+            tools=[compare_jobs, analyze_job, find_bottlenecks],
             temperature=0.2# for stableibility
             ),
         )
@@ -131,4 +167,9 @@ def investigate(df: pd.DataFrame, api_key:str):
         return response.text, tool_log
 
     finally:
+        # client.close()
+        try:
+            save_tool_log(tool_log=tool_log)
+        except(OSError, ValueError, TypeError) as exc:
+            logging.warning("Failed to save tool logs: %s", exc)
         client.close()

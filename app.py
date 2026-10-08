@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 from google import genai
+from anomaly_detector import detect_bottlenecks
 
 load_dotenv()
 
@@ -89,6 +90,33 @@ if uploaded_file is not None:
 
     st.subheader("Recruitment funnel")
     st.bar_chart(pd.Series(counts, name="Candidates"))
+
+    from anomaly_detector import detect_bottlenecks
+
+    st.subheader("Potential Recruitment Bottlenecks")
+
+    findings = detect_bottlenecks(df)
+    findings_df = pd.DataFrame(findings)
+
+    flagged_df = findings_df[
+        findings_df["status"] == "REVIEW"
+    ]
+
+    if flagged_df.empty:
+        st.success(
+            "No bottlenecks detected under the current rule."
+        )
+    else:
+        st.warning(
+            f"{len(flagged_df)} potential bottleneck(s) "
+            "require investigation."
+        )
+
+    st.dataframe(
+        findings_df,
+        use_container_width=True,
+        hide_index=True,
+    )
 
     st.subheader("Investigation")
 
