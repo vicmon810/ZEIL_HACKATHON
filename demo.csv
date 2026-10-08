@@ -1,0 +1,13 @@
+job_id,stage,days_in_process
+JOB001,applied,2
+JOB001,applied,3
+JOB001,applied,5
+JOB001,screened,7
+JOB001,screened,8
+JOB001,interviewed,14
+JOB002,applied,1
+JOB002,applied,2
+JOB002,screened,5
+JOB002,interviewed,11
+JOB002,offered,17
+JOB002,hired,23
