@@ -45,5 +45,5 @@ streamlit run app.py
 
 ## About
 
-Built for **ZEIL Hackathon 2026**.
-
+Built for **ZEIL Hackathon 2026**.<br>
+**Using ChatGPT for coding assistants.**

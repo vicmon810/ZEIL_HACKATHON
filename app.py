@@ -1,6 +1,6 @@
 
 import os
-
+from investigator import investigate
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
@@ -92,6 +92,7 @@ if uploaded_file is not None:
 
     st.subheader("Investigation")
 
+    
     if st.button("Investigate with Gemini", type="primary"):
         api_key = os.getenv("GEMINI_API_KEY")
 
@@ -99,56 +100,28 @@ if uploaded_file is not None:
             st.error("GEMINI_API_KEY is not configured.")
             st.stop()
 
-        summary = (
-            f"Total applications: {total}\n"
-            f"Stage counts (cumulative): {counts}\n"
-            f"Interview rate: {interview_rate:.2f}%\n"
-            f"Offer rate: {offer_rate:.2f}%\n"
-            f"Hire rate: {hire_rate:.2f}%\n"
-            f"Average days in process: "
-            f"{df['days_in_process'].mean():.2f}\n"
-        )
-
-        prompt = f"""
-You are an evidence-based recruitment data analyst.
-
-Analyze these calculated recruitment metrics:
-
-{summary}
-
-Return:
-1. Three notable findings.
-2. Possible bottlenecks worth investigating.
-3. Three practical recommendations for a hiring manager.
-
-Important rules:
-- Use only the provided calculated data.
-- Do not invent statistics.
-- Separate observed facts from possible explanations.
-- Do not claim discrimination or causality without evidence.
-- State when there is insufficient data.
-- Recruitment stage counts are cumulative.
-- Do not assume that low conversion is automatically bad.
-"""
-
-        with st.spinner("Gemini is investigating..."):
-            client = None
+        with st.spinner("AI agent investigating recruitment data..."):
             try:
-                client = genai.Client(api_key=api_key)
-                response = client.models.generate_content(
-                    model="gemini-flash-latest",
-                    contents=prompt,
-                )
-                if not response.text:
-                    raise ValueError("Empty AI response")
+                report, tool_log = investigate(df, api_key)
 
-                st.markdown(response.text)
+                st.subheader("AI Investigation Report")
+                st.markdown(report)
+
+                st.subheader("Agent Tool Execution")
+
+                for i, call in enumerate(tool_log, 1):
+                    with st.expander(
+                        f"Step {i}: {call['tool']}",
+                        expanded=True,
+                    ):
+                        st.write("Arguments")
+                        st.json(call["arguments"])
+
+                        st.write("Calculated evidence")
+                        st.json(call["result"])
 
             except Exception as exc:
                 st.error(
-                    f"Gemini request failed: "
+                    f"Investigation failed: "
                     f"{type(exc).__name__}: {exc}"
                 )
-            finally:
-                if client is not None:
-                    client.close()
