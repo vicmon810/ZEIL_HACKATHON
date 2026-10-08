@@ -10,14 +10,30 @@ STAGES = [
 ]
 
 
-def is_bottleneck(previous_count, next_count,
-                  threshold=0.30, minimum=10):
-    """Check an explicitly defined funnel drop rule."""
+
+def is_bottleneck(
+    previous_count,
+    next_count,
+    threshold=0.30,
+    minimum=10,
+):
+    """Return True when a valid transition falls below threshold."""
+
+    if (
+        previous_count < 0
+        or next_count < 0
+        or next_count > previous_count
+    ):
+        raise ValueError("Invalid funnel stage counts")
+
+    if not 0 <= threshold <= 1:
+        raise ValueError("Threshold must be between 0 and 1")
+
+    if minimum < 1:
+        raise ValueError("Minimum sample size must be positive")
+
     if previous_count < minimum:
         return False
-
-    if next_count > previous_count or next_count < 0:
-        raise ValueError("Invalid funnel stage counts")
 
     return next_count / previous_count < threshold
 

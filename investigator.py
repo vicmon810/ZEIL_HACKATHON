@@ -29,7 +29,7 @@ def investigate(df: pd.DataFrame, api_key:str):
 
         subset = data[data["job_id"].astype(str) == job_id]
         if subset.empty:
-            return{"error": "Unknow job: {job_id}"}
+            return{"error": f"Unknow job: {job_id}"}
 
         counts = {
             stage: int((subset["rank"] >= i).sum())
@@ -44,7 +44,10 @@ def investigate(df: pd.DataFrame, api_key:str):
             "stage_counts": counts,
             "interview_rate_pct": round(100*counts["interviewed"]/ total, 2),
             "hire_rate_pct": round(100*counts["hired"]/ total, 2),
-            "avg_days_in_process": round(float(subset["days_in_process"].mean(),2)),
+            # "avg_days_in_process": round(float(subset["days_in_process"].mean(),2)),
+            "avg_days_in_process": round(
+              float(subset["days_in_process"].mean()), 2
+            ),
         }
 
         tool_log.append({

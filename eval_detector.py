@@ -15,7 +15,7 @@ TEST_CASES = [
     (10, 3, False),
     (120,2,True),
     (33,1,True),
-    (10,8,True)
+    (10,8,False)
 ]
 
 
@@ -43,5 +43,39 @@ def evaluate():
         raise SystemExit(1)
 
 
+
+INVALID_CASES = [
+    (-10, -2),
+    (-1, 0),
+    (10, -1),
+    (10, 11),
+    (0, 1),
+]
+
+
+def evaluate_invalid_inputs():
+    passed = 0
+
+    for previous, following in INVALID_CASES:
+        try:
+            is_bottleneck(previous, following)
+        except ValueError:
+            passed += 1
+        else:
+            print(
+                f"FAIL: accepted invalid counts "
+                f"({previous}, {following})"
+            )
+
+    print(
+        f"Invalid input tests: "
+        f"{passed}/{len(INVALID_CASES)} passed"
+    )
+
+    assert passed == len(INVALID_CASES)
+
+
 if __name__ == "__main__":
     evaluate()
+    evaluate_invalid_inputs()
+

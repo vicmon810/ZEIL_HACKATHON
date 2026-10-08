@@ -1,41 +1,84 @@
 
+from pathlib import Path
+
 import pandas as pd
 from anomaly_detector import detect_bottlenecks
 
-BASE = "../test_data"
+ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT / "test_data"
 
-def check(filename, expected_status=None, should_fail=False):
+
+def load_data(filename):
+    return pd.read_csv(DATA_DIR / filename)
+
+
+def check_valid(filename, expected_statuses):
+    df = load_data(filename)
+    results = detect_bottlenecks(df)
+
+    actual = {
+        row["transition"]: row["status"]
+        for row in results
+    }
+
+    assert actual == expected_statuses, (
+        f"{filename}\n"
+        f"Expected: {expected_statuses}\n"
+        f"Actual:   {actual}"
+    )
+
+    print(f"PASS: {filename}")
+
+
+def check_invalid(filename):
+    df = load_data(filename)
+
     try:
-        df = pd.read_csv(f"{BASE}/{filename}")
-
         if df.empty:
             raise ValueError("Empty dataset")
+        detect_bottlenecks(df)
 
-        results = detect_bottlenecks(df)
-        statuses = {r["status"] for r in results}
+    except ValueError:
+        print(f"PASS: {filename} correctly rejected")
+        return
 
-        if should_fail:
-            raise AssertionError("Invalid data was accepted")
-
-        if expected_status is not None:
-            assert expected_status in statuses, (
-                f"Expected {expected_status}, got {statuses}"
-            )
-
-        print(f"PASS: {filename}")
-
-    except (ValueError, pd.errors.ParserError):
-        if should_fail:
-            print(f"PASS: {filename} correctly rejected")
-        else:
-            raise
+    raise AssertionError(
+        f"Invalid input was accepted: {filename}"
+    )
 
 
-check("normal.csv", expected_status="OK")
-check("bottleneck.csv", expected_status="REVIEW")
-check("small_sample.csv", expected_status="LOW_SAMPLE")
-check("missing_values.csv", should_fail=True)
-check("invalid_stage.csv", should_fail=True)
-check("empty.csv", should_fail=True)
+check_valid(
+    "normal.csv",
+    {
+        "applied → screened": "OK",
+        "screened → interviewed": "OK",
+        "interviewed → offered": "OK",
+        "offered → hired": "OK",
+    },
+)
 
-print("All 6 robustness scenarios passed.")
+check_valid(
+    "bottleneck.csv",
+    {
+        "applied → screened": "OK",
+        "screened → interviewed": "REVIEW",
+        "interviewed → offered": "OK",
+        "offered → hired": "LOW_SAMPLE",
+    },
+)
+
+check_valid(
+    "small_sample.csv",
+    {
+        "applied → screened": "LOW_SAMPLE",
+        "screened → interviewed": "LOW_SAMPLE",
+        "interviewed → offered": "LOW_SAMPLE",
+        "offered → hired": "LOW_SAMPLE",
+    },
+)
+
+check_invalid("missing_values.csv")
+check_invalid("invalid_stage.csv")
+check_invalid("empty.csv")
+
+print("\nAll 6 robustness scenarios passed.")
