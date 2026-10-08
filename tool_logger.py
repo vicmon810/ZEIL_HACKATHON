@@ -31,7 +31,7 @@ def save_tool_log(tool_log: list[dict]) -> str | None:
             }
 
             file.write(
-                json.dumps(record, ensure_ascii=False) + "\n"
+                json.dumps(record, ensure_ascii=False) + "\n"+"="*50
             )
 
     return investigation_id
