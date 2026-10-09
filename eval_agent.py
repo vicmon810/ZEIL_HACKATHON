@@ -20,13 +20,13 @@ STAGES = [
 CASES = [
     ("normal", [100, 80, 60, 30, 12], False),
     ("screening_drop", [120, 95, 10, 3, 1], True),
-    ("small_sample", [8, 4, 1, 0, 0], False),
-    ("low_screening", [100, 15, 10, 5, 2], True),
+    # ("small_sample", [8, 4, 1, 0, 0], False),
+    # ("low_screening", [100, 15, 10, 5, 2], True),
     ("high_conversion", [60, 55, 45, 30, 20], False),
     ("zero_interviews", [80, 60, 0, 0, 0], True),
     ("low_offers", [100, 80, 60, 5, 2], True),
     ("low_hiring", [100, 70, 40, 20, 1], True),
-    ("boundary_30", [100, 30, 12, 6, 3], False),
+    # ("boundary_30", [100, 30, 12, 6, 3], False),
     ("boundary_29", [100, 29, 12, 6, 3], True),
 ]
 

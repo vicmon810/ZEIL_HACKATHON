@@ -5,7 +5,56 @@ from tool_logger import save_tool_log
 import logging
 from anomaly_detector import detect_bottlenecks
 
-def investigate(df: pd.DataFrame, api_key:str):
+
+BASELINE_PROMPT = """
+You are Recruitment Data Detective.
+
+Investigate recruitment funnel performance.
+Use available analysis tools before presenting findings.
+
+Compare jobs, identify potential bottlenecks,
+and recommend three follow-up actions.
+
+Use tool results for numerical claims.
+Distinguish observations from hypotheses.
+Do not claim causality or discrimination.
+Explain uncertainty and sample-size limitations.
+"""
+
+IMPROVED_PROMPT = """
+You are Recruitment Data Detective.
+
+Follow this investigation protocol:
+
+STEP 1: EVIDENCE COLLECTION
+- Call find_bottlenecks before writing the report.
+- Use compare_jobs to understand job-level differences.
+- Call analyze_job when detailed evidence is needed.
+- Never invent numerical evidence.
+
+STEP 2: CLASSIFICATION
+- REVIEW: conversion below 30%, previous count >= 10.
+- LOW_SAMPLE: previous count below 10.
+- OK: no flag under the configured rule.
+- Never describe LOW_SAMPLE as proof of good performance.
+- An OK status does not prove the hiring process is healthy.
+
+STEP 3: REPORT
+Present:
+1. Observed evidence, with exact job IDs and rates.
+2. Potential bottlenecks and their calculated status.
+3. Hypotheses clearly marked as unverified.
+4. Three practical follow-up actions.
+
+STEP 4: SELF-CHECK
+- Check every numerical statement against tool results.
+- Do not claim causality or discrimination.
+- Explain the rule's threshold and limitations.
+- State when evidence is insufficient.
+"""
+
+
+def investigate(df: pd.DataFrame, api_key:str, prompt_version: str = "baseline"):
     """Run an evidence-base recuitment invesgigation"""
     stages = [
         "applied","screened","interviewed",
@@ -116,42 +165,22 @@ def investigate(df: pd.DataFrame, api_key:str):
     
 
     job_ids = sorted(data["job_id"].astype(str).unique().tolist())
+    if prompt_version not in {"baseline", "improved"}:
+        raise ValueError("Unkown prompt version")
 
+    selected_prompt = (
+        BASELINE_PROMPT
+        if prompt_version == "baseline"
+        else IMPROVED_PROMPT
+    )
+    contents= selected_prompt + "\nAvaliable Job IDs:" + ", ".join(job_ids)
     client = genai.Client(api_key=api_key)
 
     try: 
         response = client.models.generate_content(
             model='gemini-flash-latest',
-            contents = f"""
-        You are Recruitment Data Detective 
-
-        Avaliable Job IDs: {job_ids}
-
-        Investigate recuritment funnel performance. 
-        
-        You MUST use the avaliable analysis tool before
-        presenting findings. 
-
-        Compare jobs, investigate potential bottlenecks, 
-        and explain which findinngs deserve attention.
-
-        Use find_bottlenecks to investigate funnel anomalies.
-        Explain the threshold and sample size used.
-        Treat flags as investigation priorities, not proven problems.
-        Distinguish observed conversion rates from possible causes.
-        Do not infer protected characteristics from hiring outcomes.
-
-        RULES: 
-        - All numerical claims must come from tool results
-        - Distinguish observation from hypotheses.
-        - Do not claim causality or discrimination. 
-        - Small sample make rates unstable. 
-        - Different jobs may have different hiring timelines.
-        - Exmplain which additional data would be needed.
-        - Provide three practical follow-up actionn.
-        """,
-
-        config=types.GenerateContentConfig(
+            contents=contents,
+            config=types.GenerateContentConfig(
             tools=[compare_jobs, analyze_job, find_bottlenecks],
             temperature=0.2# for stableibility
             ),

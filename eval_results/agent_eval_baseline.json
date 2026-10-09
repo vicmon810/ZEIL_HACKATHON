@@ -1,0 +1,102 @@
+[
+  {
+    "case": "normal",
+    "expected_flag": false,
+    "actual_flag": false,
+    "tool_used": true,
+    "detector_used": true,
+    "report_generated": true,
+    "passed": true,
+    "error": null
+  },
+  {
+    "case": "screening_drop",
+    "expected_flag": true,
+    "actual_flag": true,
+    "tool_used": true,
+    "detector_used": true,
+    "report_generated": true,
+    "passed": true,
+    "error": null
+  },
+  {
+    "case": "small_sample",
+    "expected_flag": false,
+    "actual_flag": false,
+    "tool_used": true,
+    "detector_used": true,
+    "report_generated": true,
+    "passed": true,
+    "error": null
+  },
+  {
+    "case": "low_screening",
+    "expected_flag": true,
+    "actual_flag": true,
+    "tool_used": true,
+    "detector_used": true,
+    "report_generated": true,
+    "passed": true,
+    "error": null
+  },
+  {
+    "case": "high_conversion",
+    "expected_flag": false,
+    "actual_flag": false,
+    "tool_used": true,
+    "detector_used": true,
+    "report_generated": true,
+    "passed": true,
+    "error": null
+  },
+  {
+    "case": "zero_interviews",
+    "expected_flag": true,
+    "actual_flag": true,
+    "tool_used": true,
+    "detector_used": true,
+    "report_generated": true,
+    "passed": true,
+    "error": null
+  },
+  {
+    "case": "low_offers",
+    "expected_flag": true,
+    "actual_flag": true,
+    "tool_used": true,
+    "detector_used": true,
+    "report_generated": true,
+    "passed": true,
+    "error": null
+  },
+  {
+    "case": "low_hiring",
+    "expected_flag": true,
+    "actual_flag": true,
+    "tool_used": true,
+    "detector_used": true,
+    "report_generated": true,
+    "passed": true,
+    "error": null
+  },
+  {
+    "case": "boundary_30",
+    "expected_flag": false,
+    "actual_flag": false,
+    "tool_used": true,
+    "detector_used": true,
+    "report_generated": true,
+    "passed": true,
+    "error": null
+  },
+  {
+    "case": "boundary_29",
+    "expected_flag": true,
+    "actual_flag": true,
+    "tool_used": true,
+    "detector_used": true,
+    "report_generated": true,
+    "passed": true,
+    "error": null
+  }
+]

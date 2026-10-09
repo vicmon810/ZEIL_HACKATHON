@@ -1,0 +1,12 @@
+[
+  {
+    "case": "high_conversion",
+    "expected_flag": false,
+    "actual_flag": false,
+    "tool_used": true,
+    "detector_used": true,
+    "report_generated": true,
+    "passed": true,
+    "error": null
+  }
+]

@@ -11,6 +11,10 @@ Recruitment Data Detective *helps hiring teams turn recruitment data into action
 - **AI Investigation** — Generate evidence-based insights and recommendations.
 - **Interactive Dashboard** — Explore recruitment metrics in Streamlit.
 
+## Live Demo
+
+[Try Recruitment Data Detective](https://zeilhackathon-xeplyzqyyufyg2cncwebfp.streamlit.app/)
+
 ## Tech Stack
 
 Python · Streamlit · Pandas · Google Gemini API
