@@ -4,3 +4,5 @@ __pycache__/
 .streamlit/secrets.toml
 logs/
 jupyter/
+.ipynb_checkpoints/
+.pytest_cache/
