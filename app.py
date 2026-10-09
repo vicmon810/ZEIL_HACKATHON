@@ -1,7 +1,8 @@
+from gemini_voice_component import voice_navigation
 import hashlib
 import os
 from pathlib import Path
-from taste_theme import apply_taste_theme
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -21,7 +22,7 @@ st.set_page_config(
     layout='wide',
     initial_sidebar_state='expanded',
 )
-apply_taste_theme()
+
 st.markdown('''
 <style>
 :root {color-scheme: light;}
@@ -77,18 +78,30 @@ def validate_data(frame: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
+# Apply a voice-requested dataset before the sidebar widgets are instantiated.
+# Widget state cannot safely be changed after the widget is created.
+VOICE_DATASETS = {
+    "bottleneck": "Screening Bottleneck",
+    "normal": "Healthy Funnel",
+    "small_sample": "Small Sample",
+}
+pending = st.session_state.pop("pending_voice_dataset", None)
+if pending in VOICE_DATASETS:
+    st.session_state["data_source_choice"] = "Demo Dataset"
+    st.session_state["demo_dataset_choice"] = VOICE_DATASETS[pending]
+
 with st.sidebar:
     st.markdown('## 🌿 Data Detective')
     st.caption('Recruitment Intelligence')
     st.divider()
-    source = st.radio('Data source', ['Demo Dataset', 'Upload CSV'])
+    source = st.radio('Data source', ['Demo Dataset', 'Upload CSV'], key="data_source_choice")
     if source == 'Demo Dataset':
         options = {
             'Screening Bottleneck': 'bottleneck.csv',
             'Healthy Funnel': 'normal.csv',
             'Small Sample': 'small_sample.csv',
         }
-        selection = st.selectbox('Scenario', list(options))
+        selection = st.selectbox('Scenario', list(options), key="demo_dataset_choice")
         file_path = ROOT / 'test_data' / options[selection]
         if not file_path.is_file():
             st.error(f'Missing test dataset: {file_path.name}')
@@ -143,9 +156,37 @@ findings_df = pd.DataFrame(findings)
 flagged_df = findings_df[findings_df['status'] == 'REVIEW']
 low_sample_count = int((findings_df['status'] == 'LOW_SAMPLE').sum())
 
-overview, anomalies, ai_tab = st.tabs(['Overview', 'Anomaly Detection', 'AI Investigation'])
+# Gemini Live returns structured navigation events through Components V2.
+if "active_page" not in st.session_state:
+    st.session_state.active_page = "Overview"
+voice_event = voice_navigation()
+command = getattr(voice_event, "command", None)
+if command and command != st.session_state.get("last_voice_command"):
+    st.session_state.last_voice_command = command
+    target = command.split(":", 1)[0]
+    if target.startswith("dataset|"):
+        dataset_id = target.split("|", 1)[1]
+        if dataset_id in VOICE_DATASETS:
+            st.session_state.pending_voice_dataset = dataset_id
+            st.rerun()
+    if target == "investigate_now":
+        st.session_state.active_page = "AI Investigation"
+        st.session_state.pending_voice_investigation = True
+    destinations = {
+        "overview": "Overview",
+        "anomalies": "Anomaly Detection",
+        "investigation": "AI Investigation",
+    }
+    if target in destinations:
+        st.session_state.active_page = destinations[target]
 
-with overview:
+st.segmented_control(
+    "Dashboard section",
+    ["Overview", "Anomaly Detection", "AI Investigation"],
+    key="active_page", label_visibility="collapsed",
+)
+
+if st.session_state.active_page == "Overview":
     st.markdown('<div class="section-kicker">Hiring funnel overview</div>', unsafe_allow_html=True)
     a, b, c, d = st.columns(4)
     a.metric('Applications', f'{total:,}')
@@ -153,41 +194,24 @@ with overview:
     c.metric('Offer rate', f'{counts["offered"] / total:.1%}')
     d.metric('Hire rate', f'{counts["hired"] / total:.1%}')
     st.markdown('### Candidate journey')
-
-    fig = go.Figure(
-        go.Funnel(
-            y=[x.title() for x in STAGES],
-            x=[counts[x] for x in STAGES],
-            text=[f"{counts[x]:,}" for x in STAGES],
-            textinfo="text+percent initial",
-            textposition="outside",
-            textfont={"color": "#304536", "size": 16},
-            marker={
-                "color": COLORS,
-                "line": {"color": "#F7F6F0", "width": 2},
-            },
-            connector={
-                "line": {"color": "#A7B59F", "width": 1.5}
-            },
-                opacity=0.96,
-            )
-        )
-
+    fig = go.Figure(go.Funnel(
+        y=[x.title() for x in STAGES],
+        x=[counts[x] for x in STAGES],
+        textinfo='value+percent initial',
+        marker={'color': COLORS, 'line': {'color': '#F7F6F0', 'width': 2}},
+        textfont={'color': '#FFFFFF', 'size': 14},
+    ))
     fig.update_layout(
-        paper_bgcolor="#F7F6F0",
-        plot_bgcolor="#F7F6F0",
-        font={"color": "#131713", "size": 15},
-        height=430,
-        margin={"l": 40, "r": 40, "t": 20, "b": 20},
+        paper_bgcolor='#F7F6F0', plot_bgcolor='#F7F6F0',
+        font={'color': '#455A49'}, height=410,
+        margin={'l': 15, 'r': 15, 't': 20, 'b': 15},
     )
-
     st.plotly_chart(fig, use_container_width=True)
-    # st.plotly_chart(fig, use_container_width=True)
     st.markdown('### Data preview')
     st.dataframe(df[['job_id', 'stage', 'days_in_process']].head(20),
                  use_container_width=True, hide_index=True)
 
-with anomalies:
+if st.session_state.active_page == "Anomaly Detection":
     st.markdown('<div class="section-kicker">Evidence-based monitoring</div>', unsafe_allow_html=True)
     a, b, c = st.columns(3)
     a.metric('Jobs analyzed', df['job_id'].nunique())
@@ -208,11 +232,15 @@ with anomalies:
     st.dataframe(findings_df, use_container_width=True, hide_index=True)
     st.markdown('''<div class="muted-note">A REVIEW flag means conversion is below 30% with at least 10 people in the preceding stage. LOW_SAMPLE indicates insufficient volume for this rule. These are investigation signals, not evidence of causality or discrimination.</div>''', unsafe_allow_html=True)
 
-with ai_tab:
+if st.session_state.active_page == "AI Investigation":
     st.markdown('<div class="section-kicker">Evidence-first AI assistant</div>', unsafe_allow_html=True)
     st.markdown('### Gemini Investigation Agent')
     st.write('Run an investigation using Python-based analysis tools. Results remain visible while you switch between tabs.')
-    if st.button('Start AI Investigation', type='primary', use_container_width=True):
+    voice_start = st.session_state.pop("pending_voice_investigation", False)
+    manual_start = st.button(
+        'Start AI Investigation', type='primary', use_container_width=True
+    )
+    if voice_start or manual_start:
         key = os.getenv('GEMINI_API_KEY')
         if not key:
             st.error('GEMINI_API_KEY is missing. Add it to your local .env file.')
