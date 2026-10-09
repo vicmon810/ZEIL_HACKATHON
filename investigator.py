@@ -205,3 +205,21 @@ def investigate(df: pd.DataFrame, api_key:str, prompt_version: str = "baseline")
         except(OSError, ValueError, TypeError) as exc:
             logging.warning("Failed to save tool logs: %s", exc)
         client.close()
+
+def navigate_page(page: str):
+    """Navigate to an allowed dashboard page."""
+    allowed = {
+        "overview": "Overview",
+        "anomalies": "Anomaly Detection",
+        "investigation": "AI Investigation",
+    }
+
+    if page not in allowed:
+        return {"error": "Unknown page"}
+
+    return {"action": "navigate", "page": allowed[page]}
+
+
+def start_investigation():
+    """Request a recruitment investigation."""
+    return {"action": "investigate"}
